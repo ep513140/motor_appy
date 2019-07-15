@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: ophyd
+Version: 1.3.3
+Summary: UNKNOWN
+Home-page: UNKNOWN
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: BSD
+Platform: UNKNOWN
+Requires-Dist: networkx (>=2.0)
+Requires-Dist: numpy
+Requires-Dist: pyepics
+
+UNKNOWN
+
+

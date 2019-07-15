@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# By default, this activates the latest environment.
+unset LD_LIBRARY_PATH
+unset PYTHONPATH
+# Use this CONDA environment
+CONDA_ROOT="/reg/g/pcds/pyps/conda/py36"
+source "${CONDA_ROOT}/etc/profile.d/conda.sh"
+# Activate a specific CONDA env
+conda activate motor_env
+# Change directory to your package
+cd motor_flask
+# Run your command
+gunicorn --bind  134.79.165.97:8050 wsgi:app.server
