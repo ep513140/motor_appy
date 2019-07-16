@@ -203,7 +203,7 @@ def add_tbls(graphs):
     for i in range(1, 6):
         tbls.append(dash_table.DataTable(
                 data = [],
-                style_table={'display': 'none', 'overflow-Y':'scroll', 'maxHeight': '150'},
+                style_table={'display': 'none', 'overflow-Y':'scroll', 'maxHeight': '200px'},
                 columns=[{"name": j, "id": j} for j in ['start_ts', 'finish_ts', 'start_pos', 'finish_pos', 'target', 'success', 'user']],
                 fixed_rows={ 'headers': True, 'data': 0 },
                 style_cell={'fontSize':15, 'font-family':'sans-serif', 'minWidth': '180px',
@@ -215,7 +215,7 @@ def add_tbls(graphs):
 
 #sets automatic plot to being with before user input
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, url_base_pathname='/motor_flask/')
 server = app.server
 app.layout = html.Div([
 
@@ -293,7 +293,7 @@ app.layout = html.Div([
 
 def update_chart(start_date, end_date, motors):
     graphs = add_motors(motors, datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'))
-    if graphs == () or graphs==[{'data': []}, '[]', '[]', '[]', '[]', '[]', '[]']:
+    if graphs[0].data == () or graphs==():
         outputs = [{'data':[]}, {'display': 'none'}, ('No activity for selected dates and motor(s)')]
         for i in range(1, 6):
             outputs.append([]),
@@ -308,11 +308,11 @@ def update_chart(start_date, end_date, motors):
     for i in range(1, 6):
         if isinstance(graphs[i], pd.DataFrame):
             outputs.append(graphs[i].to_dict('records')),
-            outputs.append({'overflow-Y':'scroll', 'maxHeight': '150', 'display':'', 'minWidth':1300, 'padding':20})
+            outputs.append({'overflow-Y':'scroll', 'maxHeight': '200px', 'display':'', 'minWidth':1300, 'padding':20, 'padding-bottom':10})
             outputs.append({'backgroundColor': plotly.colors.DEFAULT_PLOTLY_COLORS[i-1],'color':'white'})
         else:
             outputs.append([]),
-            outputs.append({'display': 'none', 'overflow-Y':'scroll', 'maxHeight': '150'})
+            outputs.append({'display': 'none', 'overflow-Y':'scroll', 'maxHeight': '10'})
             outputs.append({'backgroundColor': plotly.colors.DEFAULT_PLOTLY_COLORS[i-1],'color':'white'})
     return outputs
 
