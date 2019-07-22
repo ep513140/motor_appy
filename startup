@@ -8,6 +8,6 @@ source "${CONDA_ROOT}/etc/profile.d/conda.sh"
 # Activate a specific CONDA env
 conda activate motor_env
 # Change directory to your package
-cd motor_flask
+cd motor_app
 # Run your command
 gunicorn --bind  134.79.165.97:8050 wsgi:app.server
