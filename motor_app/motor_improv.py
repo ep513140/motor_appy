@@ -22,10 +22,13 @@ def arch_plot(motor, start, end, num):
 	end = str(end)+ " 23:59:59"
 	start = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
 	end = datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
-	pvname = 'MFX:TFS:MMS:21.RBV'
+	pvname = motor
 	arch = EpicsArchive()
 	data = arch.get(pvname, start, end, xarray=True)
 	df = data.to_dataframe()
+	if df.empty:
+		data = arch.get('MFX:TFS:MMS:21', start, end, xarray=True)
+		df = data.to_dataframe()
 	values = df[pvname]['vals'].tolist()
 	times = data['time'].to_dataframe()['time'].tolist()
 	if len(values)==1:
@@ -430,7 +433,7 @@ def update_chart(start_date, end_date, motors):
         if isinstance(graphs[i], pd.DataFrame):
             graphs[i] = graphs[i].loc[:, graphs[i].columns !='Finish Time']
             outputs.append(graphs[i].to_dict('records')),
-            outputs.append({'overflow-Y':'scroll', 'maxHeight': '200px', 'display':'', 'minWidth':'1300', 'padding':60, 'padding-top':20, 'padding-bottom':10})
+            outputs.append({'overflow-Y':'scroll', 'maxHeight': '200px', 'display':'', 'minWidth':'1300', 'padding':30, 'padding-top':20, 'padding-bottom':10})
             outputs.append({'backgroundColor': plotly.colors.DEFAULT_PLOTLY_COLORS[i-1],'color':'white'})
         else:
             outputs.append([]),
@@ -442,4 +445,4 @@ def update_chart(start_date, end_date, motors):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=False, port=8049)

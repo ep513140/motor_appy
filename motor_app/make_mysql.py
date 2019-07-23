@@ -76,7 +76,7 @@ class waitingHook():
     def get_data(self, motor, start_time, stop_time):
         mycursor = self.mydb.cursor()
 
-        query = "SELECT start_ts, finish_ts, CAST(start_pos AS UNSIGNED), CAST(finish_pos AS UNSIGNED), CAST(target AS UNSIGNED), success, user FROM "+motor+" WHERE STR_TO_DATE(start_ts, '%Y-%m-%d') >= '"+start_time+"' AND STR_TO_DATE(start_ts, '%Y-%m-%d') <= '"+stop_time+"'"
+        query = "SELECT start_ts, finish_ts, start_pos, finish_pos, target, success, user FROM "+motor+" WHERE STR_TO_DATE(start_ts, '%Y-%m-%d') >= '"+start_time+"' AND STR_TO_DATE(start_ts, '%Y-%m-%d') <= '"+stop_time+"'"
         df = pandas.read_sql_query(query, self.mydb)
 
         self.mydb.commit()
