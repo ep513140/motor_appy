@@ -6,7 +6,7 @@ unset PYTHONPATH
 CONDA_ROOT="/reg/g/pcds/pyps/conda/py36"
 source "${CONDA_ROOT}/etc/profile.d/conda.sh"
 # Activate a specific CONDA env
-conda activate motor_env
+conda activate motorenvir
 # Change directory to your package
 cd motor_app
 # Run your command

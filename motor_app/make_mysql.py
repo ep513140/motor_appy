@@ -12,7 +12,7 @@ from bluesky import RunEngine
 from bluesky.plans import scan
 from bluesky.callbacks.best_effort import BestEffortCallback
 from ophyd.sim import SynGauss
-
+import os
 from status import StatusAxis
 import getpass
 import pandas
@@ -22,10 +22,10 @@ import pandas
 class waitingHook():
     def __init__(self, motorName):
         mydb = mysql.connector.connect(
-        host="psdb-dev",
-        user="ella",
-        passwd="pcds",
-        database="motor_movements",
+        host=os.environ['MYSQL_HOST'],
+        user=os.environ['MYSQL_USER'],
+        passwd=os.environ['MYSQL_PASSWORD'],
+        database=os.environ['MYSQL_DB'],
         )
         cursor = mydb.cursor()
         self.create_table(motorName, mydb)

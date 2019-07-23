@@ -13,7 +13,7 @@ from make_mysql import waitingHook
 import dash_table
 import time
 from textwrap import dedent
-from archapp.archapp.interactive import EpicsArchive
+from archapp.interactive import EpicsArchive
 ###########################################################
 
 #helper method created to make different markers for diffferent types of event points (completed, initiated, not comp)
@@ -46,7 +46,6 @@ def arch_plot(motor, start, end, num):
 	y=values
 	)
 	legendgroup = str(motor),
-	motorColor = plotly.colors.DEFAULT_PLOTLY_COLORS[num]
 	return arch_plot
 
 def  make_scatter(startX, startY, successX, successY, stoppedX, stoppedY, motor_name):
@@ -167,6 +166,7 @@ def unsuccess_line(df, stoppedX, stoppedY, i, motor_name, num, success):
         legendgroup = str(motor_name),
         text = str(motor_name)+" Unsuccessful Event",
         hoverinfo = 'text',
+        hoverlabel = dict(bgcolor='black'),
         line = dict(
         dash = 'dash',
         color='black'
@@ -374,7 +374,7 @@ app.layout = html.Div([
             x=['giraffes'],
             y=[2] )]},
             id = 'plot_motor',
-            style = {'display':'none', 'width' : 1300}),
+            style = {'backgroundColor':'white','display':'none', 'width' : 1300}),
     add_tbls([]),
     html.Div(id='output-container')
 ])
@@ -408,7 +408,7 @@ app.layout = html.Div([
 def update_chart(start_date, end_date, motors):
     graphs = add_motors(motors, datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'))
     if len(graphs[0].data) == 1:
-        outputs = [graphs[0], {'display': ''}, ('Only Archiver plot for selected dates and motor(s), no motor movements')]
+        outputs = [graphs[0], {'display': '', 'backgroundColor':'white'}, ('Only Archiver plot for selected dates and motor(s), no motor movements')]
         for i in range(1, 6):
             outputs.append([]),
             outputs.append({'display': 'none'}),
@@ -425,7 +425,7 @@ def update_chart(start_date, end_date, motors):
         start_date = start_date[:-9]
     if len(end_date)>15:
         end_date = end_date[:-9]
-    outputs = [graphs[0], {'display': '', 'padding':20}, ('')]
+    outputs = [graphs[0], {'display': '','backgroundColor':'white', 'padding':20}, ('')]
     for i in range(1, 6):
         if isinstance(graphs[i], pd.DataFrame):
             graphs[i] = graphs[i].loc[:, graphs[i].columns !='Finish Time']
@@ -442,4 +442,4 @@ def update_chart(start_date, end_date, motors):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
