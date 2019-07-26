@@ -246,28 +246,24 @@ def add_tbls(graphs):
 app = dash.Dash(__name__, url_base_pathname='/motor_flask/')
 server = app.server
 app.layout = html.Div([
-    dbc.Row([
-    dbc.Col(html.Div(
-    html.Div(dcc.DatePickerRange(
+    dcc.DatePickerRange(
     id='my-date-picker-range',
     min_date_allowed=datetime(1995, 8, 5),
     max_date_allowed=datetime(3000, 9, 19),
-    #start_date=datetime.today().strftime('%Y-%m-%d'),
-    #end_date=datetime.today().strftime('%Y-%m-%d'),
-    start_date='2019-07-22',
-    end_date='2019-07-23',
-    style={'padding':20,'width': '20%', 'display': 'inline-block'},
-    )))),
-    dbc.Col(html.Div(dcc.Checklist(
+    start_date=datetime.today().strftime('%Y-%m-%d'),
+    end_date=datetime.today().strftime('%Y-%m-%d'),
+    style={'height':30, 'fontSize':10, 'width': '23%', 'display': 'inline-block'},
+    ),
+    dcc.Checklist(
     options=[
         {'label': '  Show EPICS Archiver Plot', 'value': 'Archiver'}
     ],
     id = 'archiver',
-    style = {'padding':20,'width': '20%', 'display': 'inline-block'},
+    style = {'width': '15%', 'display': 'inline-block'},
     labelStyle={'size':50,'display': 'inline-block'},
     value=[]
-    )))]),
-    html.Div(dcc.Dropdown(
+    ),
+    dcc.Dropdown(
         id='my-dropdown',
         options=[
             {'label': 'test', 'value': 'test'},
@@ -377,12 +373,12 @@ app.layout = html.Div([
             {'label': 'MFX:USR:MMS:14', 'value': 'MFX:USR:MMS:14'},
             {'label': 'MFX:USR:MMS:15', 'value': 'MFX:USR:MMS:15'},
         ],
-        style={'padding-left':20, 'padding-right': 20, 'padding-bottom':5, 'padding-top':5, 'fontSize':18},
-        value = ['testTable'],
+        style={'display':'inline-block', 'width':'60%', 'fontSize':18},
         placeholder = "Select motor(s)",
-        multi=True
-    )),  
-    html.Div(dcc.Markdown(
+        multi=True,
+        value = []
+    ),  
+    dcc.Markdown(
     dedent(
         '''
         No activity for selected dates and motor(s)
@@ -390,13 +386,13 @@ app.layout = html.Div([
     ),
     id = 'text',
     style = {'padding':20}
-    )),
-    html.Div(dcc.Graph(
+    ),
+    dcc.Graph(
             figure = {'data' : [go.Bar(
             x=['giraffes'],
             y=[2] )]},
             id = 'plot_motor',
-            style = {'backgroundColor':'white','display':'none', 'width' : 1300})),
+            style = {'backgroundColor':'white','display':'none', 'width' : 1300}),
     add_tbls([]),
     html.Div(id='output-container')
 ])
