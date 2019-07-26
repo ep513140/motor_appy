@@ -11,6 +11,7 @@ from datetime import timedelta
 import dateutil.parser
 from make_mysql import waitingHook
 import dash_table
+import dash_bootstrap_components as dbc
 import time
 from textwrap import dedent
 from archapp.interactive import EpicsArchive
@@ -18,6 +19,8 @@ from archapp.interactive import EpicsArchive
 
 #helper method created to make different markers for diffferent types of event points (completed, initiated, not comp)
 def arch_plot(motor, start, end, num):
+	if  motor == 'testTable':
+		motor = 'CXI:DG1:MMS:01'
 	start = str(start)+" 00:00:00"
 	end = str(end)+ " 23:59:59"
 	start = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
@@ -25,11 +28,13 @@ def arch_plot(motor, start, end, num):
 	pvname = motor
 	arch = EpicsArchive()
 	data = arch.get(pvname, start, end, xarray=True)
-	df = data.to_dataframe()
-	if df.empty:
+	if data.isnull:
+	#df = data.to_dataframe()
+	#if df.empty:
+		motor = 'MFX:TFS:MMS:21'
 		data = arch.get('MFX:TFS:MMS:21', start, end, xarray=True)
-		df = data.to_dataframe()
-	values = df[pvname]['vals'].tolist()
+	df = data.to_dataframe()
+	values = df[motor]['vals'].tolist()
 	times = data['time'].to_dataframe()['time'].tolist()
 	if len(values)==1:
 		values = [values[0], values[0]]
@@ -99,15 +104,17 @@ def  make_scatter(startX, startY, successX, successY, stoppedX, stoppedY, motor_
 
 #called when an instrument is chosen from dropdown, the motor's df is found in the database for the given date range
 #and appends points to lists sent to make_scatter to be given specific markers
-def plot_motor(motor_name, time1, time2, num, success):
+def plot_motor(motor_name, time1, time2, num, success, archiver):
         time1=datetime.strftime(time1, "%Y-%m-%d")
         time2=datetime.strftime(time2, "%Y-%m-%d")
         wh = waitingHook(str(motor_name))
         df = wh.get_data(str(motor_name), time1, time2)
-        arch = arch_plot(motor_name, time1, time2, num)
+        data = []
+        if archiver==True:
+           data += [arch_plot(motor_name, time1, time2, num)]
         df.columns = ['start_ts', 'finish_ts', 'start_pos', 'finish_pos', 'target', 'success', 'user']
         if df.empty:
-           return [[arch],[]]
+           return [data, []]
         timeList = []
         positionList = []
         stoppedX = []
@@ -151,7 +158,7 @@ def plot_motor(motor_name, time1, time2, num, success):
                           name = str(motor_name)+" Movement Plot",
         )
 
-        data = [event]+stopEvent+[arch]+unapproved+make_scatter(startX, startY, successX, successY, stoppedX, stoppedY,  motor_name)
+        data += [event]+stopEvent+unapproved+make_scatter(startX, startY, successX, successY, stoppedX, stoppedY,  motor_name)
         df.columns = ['Start Time', 'Finish Time', 'Start Position', 'Finish Position', 'Target Position', 'Success', 'User']
         return [data, df]
 
@@ -198,14 +205,14 @@ def unapproved_move(df, i, motor_name, num, success):
 
 
 #called when motors are added or date is changed, uploads data into a plot and makes a table with the complete data
-def add_motors(motors, time1, time2):
+def add_motors(motors, time1, time2, arch):
     data=[]
     tables = []
     finalList = [0]
     success=0
     for i in range(0, len(motors)):
         tabledat = []
-        add_motors = plot_motor(motors[i], time1, time2,i, success)
+        add_motors = plot_motor(motors[i], time1, time2,i, success, arch)
         data += add_motors[0]
         if len(add_motors[0])>1:
             success+=1
@@ -239,20 +246,33 @@ def add_tbls(graphs):
 app = dash.Dash(__name__, url_base_pathname='/motor_flask/')
 server = app.server
 app.layout = html.Div([
-
-    dcc.DatePickerRange(
+    dbc.Row([
+    dbc.Col(html.Div(
+    html.Div(dcc.DatePickerRange(
     id='my-date-picker-range',
     min_date_allowed=datetime(1995, 8, 5),
     max_date_allowed=datetime(3000, 9, 19),
-    start_date=datetime.today().strftime('%Y-%m-%d'),
-    end_date=datetime.today().strftime('%Y-%m-%d'),
-    style={'padding':20}
-),
-    dcc.Dropdown(
+    #start_date=datetime.today().strftime('%Y-%m-%d'),
+    #end_date=datetime.today().strftime('%Y-%m-%d'),
+    start_date='2019-07-22',
+    end_date='2019-07-23',
+    style={'padding':20,'width': '20%', 'display': 'inline-block'},
+    )))),
+    dbc.Col(html.Div(dcc.Checklist(
+    options=[
+        {'label': '  Show EPICS Archiver Plot', 'value': 'Archiver'}
+    ],
+    id = 'archiver',
+    style = {'padding':20,'width': '20%', 'display': 'inline-block'},
+    labelStyle={'size':50,'display': 'inline-block'},
+    value=[]
+    )))]),
+    html.Div(dcc.Dropdown(
         id='my-dropdown',
         options=[
-            {'label': 'MFX:DET:MMS:01', 'value': 'MFX:DET:MMS:01'},
             {'label': 'test', 'value': 'test'},
+            {'label': 'testTable', 'value': 'testTable'},
+            {'label': 'MFX:DET:MMS:01', 'value': 'MFX:DET:MMS:01'},
             {'label': 'MFX:DET:MMS:02', 'value': 'MFX:DET:MMS:02'},
             {'label': 'MFX:DET:MMS:03', 'value': 'MFX:DET:MMS:03'},
             {'label': 'MFX:DET:MMS:04', 'value': 'MFX:DET:MMS:04'},
@@ -356,14 +376,13 @@ app.layout = html.Div([
             {'label': 'MFX:USR:MMS:13', 'value': 'MFX:USR:MMS:13'},
             {'label': 'MFX:USR:MMS:14', 'value': 'MFX:USR:MMS:14'},
             {'label': 'MFX:USR:MMS:15', 'value': 'MFX:USR:MMS:15'},
-            {'label': 'testTable', 'value': 'testTable'}
         ],
         style={'padding-left':20, 'padding-right': 20, 'padding-bottom':5, 'padding-top':5, 'fontSize':18},
-        value = [],
+        value = ['testTable'],
         placeholder = "Select motor(s)",
         multi=True
-    ),
-    dcc.Markdown(
+    )),  
+    html.Div(dcc.Markdown(
     dedent(
         '''
         No activity for selected dates and motor(s)
@@ -371,18 +390,16 @@ app.layout = html.Div([
     ),
     id = 'text',
     style = {'padding':20}
-    ),
-    dcc.Graph(
+    )),
+    html.Div(dcc.Graph(
             figure = {'data' : [go.Bar(
             x=['giraffes'],
             y=[2] )]},
             id = 'plot_motor',
-            style = {'backgroundColor':'white','display':'none', 'width' : 1300}),
+            style = {'backgroundColor':'white','display':'none', 'width' : 1300})),
     add_tbls([]),
     html.Div(id='output-container')
 ])
-
-
 
 @app.callback(
     [dash.dependencies.Output(component_id='plot_motor', component_property='figure'),
@@ -406,10 +423,13 @@ app.layout = html.Div([
     [dash.dependencies.Input(component_id='my-date-picker-range', component_property='start_date'),
     dash.dependencies.Input(component_id='my-date-picker-range', component_property='end_date'),
     dash.dependencies.Input(component_id='my-dropdown', component_property='value'),
+    dash.dependencies.Input(component_id='archiver', component_property = 'value'),
     ])
-
-def update_chart(start_date, end_date, motors):
-    graphs = add_motors(motors, datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'))
+def update_chart(start_date, end_date, motors, archiver):
+    arch = True
+    if archiver==[]:
+        arch = False
+    graphs = add_motors(motors, datetime.strptime(start_date, '%Y-%m-%d'), datetime.strptime(end_date, '%Y-%m-%d'), arch)
     if len(graphs[0].data) == 1:
         outputs = [graphs[0], {'display': '', 'backgroundColor':'white'}, ('Only Archiver plot for selected dates and motor(s), no motor movements')]
         for i in range(1, 6):
@@ -433,7 +453,7 @@ def update_chart(start_date, end_date, motors):
         if isinstance(graphs[i], pd.DataFrame):
             graphs[i] = graphs[i].loc[:, graphs[i].columns !='Finish Time']
             outputs.append(graphs[i].to_dict('records')),
-            outputs.append({'overflow-Y':'scroll', 'maxHeight': '200px', 'display':'', 'minWidth':'1300', 'padding':30, 'padding-top':20, 'padding-bottom':10})
+            outputs.append({'overflow-Y':'scroll', 'maxHeight': '200px', 'display':'', 'minWidth':'1300', 'padding':20, 'padding-top':20,'padding-right':50, 'padding-bottom':10})
             outputs.append({'backgroundColor': plotly.colors.DEFAULT_PLOTLY_COLORS[i-1],'color':'white'})
         else:
             outputs.append([]),

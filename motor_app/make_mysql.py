@@ -45,9 +45,9 @@ class waitingHook():
         finish = status.finish_ts
         start_ts = str(datetime.datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S'))
         finish_ts = str(datetime.datetime.fromtimestamp(finish).strftime('%Y-%m-%d %H:%M:%S'))
-        start_pos = int(round(status.start_pos))
-        finish_pos = int(round(status.finish_pos))
-        target = int(round(status.target))
+        start_pos = round(status.start_pos,1)
+        finish_pos = round(status.finish_pos,1)
+        target = round(status.target,1)
         user = str(user)
         temp = str(status.success)
         motorName = self.motorName
