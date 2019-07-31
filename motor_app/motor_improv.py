@@ -19,8 +19,6 @@ from archapp.interactive import EpicsArchive
 
 #helper method created to make different markers for diffferent types of event points (completed, initiated, not comp)
 def arch_plot(motor, start, end, num):
-	if  motor == 'testTable':
-		motor = 'CXI:DG1:MMS:01'
 	start = str(start)+" 00:00:00"
 	end = str(end)+ " 23:59:59"
 	start = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
@@ -29,10 +27,7 @@ def arch_plot(motor, start, end, num):
 	arch = EpicsArchive()
 	data = arch.get(pvname, start, end, xarray=True)
 	if data.isnull:
-	#df = data.to_dataframe()
-	#if df.empty:
-		motor = 'MFX:TFS:MMS:21'
-		data = arch.get('MFX:TFS:MMS:21', start, end, xarray=True)
+                return []
 	df = data.to_dataframe()
 	values = df[motor]['vals'].tolist()
 	times = data['time'].to_dataframe()['time'].tolist()
@@ -54,7 +49,7 @@ def arch_plot(motor, start, end, num):
 	y=values
 	)
 	legendgroup = str(motor),
-	return arch_plot
+	return [arch_plot]
 
 def  make_scatter(startX, startY, successX, successY, stoppedX, stoppedY, motor_name):
         start = go.Scatter(
@@ -107,12 +102,12 @@ def  make_scatter(startX, startY, successX, successY, stoppedX, stoppedY, motor_
 def plot_motor(motor_name, time1, time2, num, success, archiver):
         time1=datetime.strftime(time1, "%Y-%m-%d")
         time2=datetime.strftime(time2, "%Y-%m-%d")
-        wh = waitingHook(str(motor_name))
+        wh = waitingHook()
         df = wh.get_data(str(motor_name), time1, time2)
         data = []
-        if archiver==True:
-           data += [arch_plot(motor_name, time1, time2, num)]
-        df.columns = ['start_ts', 'finish_ts', 'start_pos', 'finish_pos', 'target', 'success', 'user']
+        if archiver==True and df['prefix'][0]!='None':
+           data += arch_plot(df['prefix'][0], time1, time2, num)
+        df.columns = ['start_ts', 'finish_ts', 'start_pos', 'finish_pos', 'target', 'success', 'user', 'prefix']
         if df.empty:
            return [data, []]
         timeList = []
@@ -157,9 +152,11 @@ def plot_motor(motor_name, time1, time2, num, success, archiver):
                           showlegend = True,
                           name = str(motor_name)+" Movement Plot",
         )
+        if df['prefix'][0]!='None':
+                 event.name = str(motor_name)+" Movement Plot ("+ str(df['prefix'][0])+")"
 
         data += [event]+stopEvent+unapproved+make_scatter(startX, startY, successX, successY, stoppedX, stoppedY,  motor_name)
-        df.columns = ['Start Time', 'Finish Time', 'Start Position', 'Finish Position', 'Target Position', 'Success', 'User']
+        df.columns = ['Start Time', 'Finish Time', 'Start Position', 'Finish Position', 'Target Position', 'Success', 'User', 'Prefix']
         return [data, df]
 
 #if the target is not reached, the line is simulated and plotted as if it were reached as a black dashed line
@@ -242,7 +239,12 @@ def add_tbls(graphs):
     return html.Div(tbls)
 
 #sets automatic plot to being with before user input
-
+table_names = []
+#REPLACE TEST WITH SURE-FIRE MOTOR
+wh = waitingHook()
+sql_names = wh.get_tables()
+for i in range(len(sql_names)):
+    table_names.append(sql_names[i][0])
 app = dash.Dash(__name__, url_base_pathname='/motor_flask/')
 server = app.server
 app.layout = html.Div([
@@ -252,128 +254,21 @@ app.layout = html.Div([
     max_date_allowed=datetime(3000, 9, 19),
     start_date=datetime.today().strftime('%Y-%m-%d'),
     end_date=datetime.today().strftime('%Y-%m-%d'),
-    style={'height':30, 'fontSize':10, 'width': '23%', 'display': 'inline-block'},
+    style={'padding-top':10, 'padding-left':20, 'height':30, 'fontSize':10, 'width': '23%', 'display': 'inline-block'},
     ),
     dcc.Checklist(
     options=[
         {'label': '  Show EPICS Archiver Plot', 'value': 'Archiver'}
     ],
     id = 'archiver',
-    style = {'width': '15%', 'display': 'inline-block'},
+    style = {'padding-top':10, 'width': '15%', 'display': 'inline-block'},
     labelStyle={'size':50,'display': 'inline-block'},
     value=[]
     ),
     dcc.Dropdown(
         id='my-dropdown',
-        options=[
-            {'label': 'test', 'value': 'test'},
-            {'label': 'testTable', 'value': 'testTable'},
-            {'label': 'MFX:DET:MMS:01', 'value': 'MFX:DET:MMS:01'},
-            {'label': 'MFX:DET:MMS:02', 'value': 'MFX:DET:MMS:02'},
-            {'label': 'MFX:DET:MMS:03', 'value': 'MFX:DET:MMS:03'},
-            {'label': 'MFX:DET:MMS:04', 'value': 'MFX:DET:MMS:04'},
-            {'label': 'MFX:DG1:CLF:01', 'value': 'MFX:DG1:CLF:01'},
-            {'label': 'MFX:DG1:CLZ:01', 'value': 'MFX:DG1:CLZ:01'},
-            {'label': 'MFX:DG1:MMS:01', 'value': 'MFX:DG1:MMS:01'},
-            {'label': 'MFX:DG1:MMS:09', 'value': 'MFX:DG1:MMS:09'},
-            {'label': 'MFX:DG1:PIM:MOTOR', 'value': 'MFX:DG1:PIM:MOTOR'},
-            {'label': 'MFX:DG1:RLM:MIRROR:MOTOR', 'value': 'MFX:DG1:RLM:MIRROR:MOTOR'},
-            {'label': 'MFX:DG1:IPM:DIODE:MOTOR', 'value': 'MFX:DG1:IPM:DIODE:MOTOR'},
-            {'label': 'MFX:DG1:IPM:TARGET:MOTOR', 'value': 'MFX:DG1:IPM:TARGET:MOTOR'},
-            {'label': 'MFX:DG1:MMS:06', 'value': 'MFX:DG1:MMS:06'},
-            {'label': 'MFX:DG1:MMS:07', 'value': 'MFX:DG1:MMS:07'},
-            {'label': 'MFX:DG1:MMS:08', 'value': 'MFX:DG1:MMS:08'},
-            {'label': 'MFX:DG2:IPM:DIODE:MOTOR', 'value': 'MFX:DG2:IPM:DIODE:MOTOR'},
-            {'label': 'MFX:DG2:IPM:TARGET:MOTOR', 'value': 'MFX:DG2:IPM:TARGET:MOTOR'},
-            {'label': 'MFX:DG2:MMS:05', 'value': 'MFX:DG2:MMS:05'},
-            {'label': 'MFX:DG2:MMS:06', 'value': 'MFX:DG2:MMS:06'},
-            {'label': 'MFX:DG2:MMS:07', 'value': 'MFX:DG2:MMS:07'},
-            {'label': 'MFX:DG2:CLF:01', 'value': 'MFX:DG2:CLF:01'},
-            {'label': 'MFX:DG2:CLZ:01', 'value': 'MFX:DG2:CLZ:01'},
-            {'label': 'MFX:DG2:MMS:08', 'value': 'MFX:DG2:MMS:08'},
-            {'label': 'MFX:DG2:PIM:MOTOR', 'value': 'MFX:DG2:PIM:MOTOR'},
-            {'label': 'MFX:DIA:MMS:08', 'value': 'MFX:DIA:MMS:08'},
-            {'label': 'MFX:DIA:MMS:09', 'value': 'MFX:DIA:MMS:09'},
-            {'label': 'MFX:ROB:MMS:08', 'value': 'MFX:ROB:MMS:08'},
-            {'label': 'MFX:DG1:MMS:02', 'value': 'MFX:DG1:MMS:02'},
-            {'label': 'MFX:DG1:MMS:03', 'value': 'MFX:DG1:MMS:03'},
-            {'label': 'MFX:DG1:MMS:04', 'value': 'MFX:DG1:MMS:04'},
-            {'label': 'MFX:DG1:MMS:05', 'value': 'MFX:DG1:MMS:05'},
-            {'label': 'MFX:DG2:MMS:01', 'value': 'MFX:DG2:MMS:01'},
-            {'label': 'MFX:DG2:MMS:02', 'value': 'MFX:DG2:MMS:02'},
-            {'label': 'MFX:DG2:MMS:03', 'value': 'MFX:DG2:MMS:03'},
-            {'label': 'MFX:DG2:MMS:04', 'value': 'MFX:DG2:MMS:04'},
-            {'label': 'MFX:DG2:MMS:12', 'value': 'MFX:DG2:MMS:12'},
-            {'label': 'MFX:DG2:MMS:13', 'value': 'MFX:DG2:MMS:13'},
-            {'label': 'MFX:DG2:MMS:14', 'value': 'MFX:DG2:MMS:14'},
-            {'label': 'MFX:DG2:MMS:15', 'value': 'MFX:DG2:MMS:15'},
-            {'label': 'MFX:DG2:MMS:15', 'value': 'MFX:DG2:MMS:15'},
-            {'label': 'MFX:DG2:MMS:16', 'value': 'MFX:DG2:MMS:16'},
-            {'label': 'MFX:DG2:MMS:17', 'value': 'MFX:DG2:MMS:17'},
-            {'label': 'MFX:DG2:MMS:18', 'value': 'MFX:DG2:MMS:18'},
-            {'label': 'MFX:DG2:MMS:19', 'value': 'MFX:DG2:MMS:19'},
-            {'label': 'MFX:TAB:MMS:01', 'value': 'MFX:TAB:MMS:01'},
-            {'label': 'MFX:TAB:MMS:02', 'value': 'MFX:TAB:MMS:02'},
-            {'label': 'MFX:TAB:MMS:03', 'value': 'MFX:TAB:MMS:03'},
-            {'label': 'MFX:TAB:MMS:04', 'value': 'MFX:TAB:MMS:04'},
-            {'label': 'MFX:TAB:MMS:05', 'value': 'MFX:TAB:MMS:05'},
-            {'label': 'MFX:TAB:MMS:06', 'value': 'MFX:TAB:MMS:06'},
-            {'label': 'MFX:TFS:MMS:01', 'value': 'MFX:TFS:MMS:01'},
-            {'label': 'MFX:TFS:MMS:02', 'value': 'MFX:TFS:MMS:02'},
-            {'label': 'MFX:TFS:MMS:03', 'value': 'MFX:TFS:MMS:03'},
-            {'label': 'MFX:TFS:MMS:04', 'value': 'MFX:TFS:MMS:04'},
-            {'label': 'MFX:TFS:MMS:05', 'value': 'MFX:TFS:MMS:05'},
-            {'label': 'MFX:TFS:MMS:06', 'value': 'MFX:TFS:MMS:06'},
-            {'label': 'MFX:TFS:MMS:07', 'value': 'MFX:TFS:MMS:07'},
-            {'label': 'MFX:TFS:MMS:08', 'value': 'MFX:TFS:MMS:08'},
-            {'label': 'MFX:TFS:MMS:09', 'value': 'MFX:TFS:MMS:09'},
-            {'label': 'MFX:TFS:MMS:10', 'value': 'MFX:TFS:MMS:10'},
-            {'label': 'MFX:TFS:MMS:11', 'value': 'MFX:TFS:MMS:11'},
-            {'label': 'MFX:TFS:MMS:12', 'value': 'MFX:TFS:MMS:12'},
-            {'label': 'MFX:TFS:MMS:13', 'value': 'MFX:TFS:MMS:13'},
-            {'label': 'MFX:TFS:MMS:14', 'value': 'MFX:TFS:MMS:14'},
-            {'label': 'MFX:TFS:MMS:15', 'value': 'MFX:TFS:MMS:15'},
-            {'label': 'MFX:TFS:MMS:16', 'value': 'MFX:TFS:MMS:16'},
-            {'label': 'MFX:TFS:MMS:17', 'value': 'MFX:TFS:MMS:17'},
-            {'label': 'MFX:TFS:MMS:18', 'value': 'MFX:TFS:MMS:18'},
-            {'label': 'MFX:TFS:MMS:19', 'value': 'MFX:TFS:MMS:19'},
-            {'label': 'MFX:TFS:MMS:20', 'value': 'MFX:TFS:MMS:20'},
-            {'label': 'MFX:TFS:MMS:21', 'value': 'MFX:TFS:MMS:21'},
-            {'label': 'MFX:TFS:XFLS:01:MOTOR', 'value': 'MFX:TFS:XFLS:01:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:02:MOTOR', 'value': 'MFX:TFS:XFLS:02:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:03:MOTOR', 'value': 'MFX:TFS:XFLS:03:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:04:MOTOR', 'value': 'MFX:TFS:XFLS:04:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:05:MOTOR', 'value': 'MFX:TFS:XFLS:05:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:06:MOTOR', 'value': 'MFX:TFS:XFLS:06:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:07:MOTOR', 'value': 'MFX:TFS:XFLS:07:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:08:MOTOR', 'value': 'MFX:TFS:XFLS:08:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:09:MOTOR', 'value': 'MFX:TFS:XFLS:09:MOTOR'},
-            {'label': 'MFX:TFS:XFLS:10:MOTOR', 'value': 'MFX:TFS:XFLS:10:MOTOR'},
-            {'label': 'MFX:USR:MMS:17', 'value': 'MFX:USR:MMS:17'},
-            {'label': 'MFX:USR:MMS:18', 'value': 'MFX:USR:MMS:18'},
-            {'label': 'MFX:USR:MMS:19', 'value': 'MFX:USR:MMS:19'},
-            {'label': 'MFX:USR:MMS:20', 'value': 'MFX:USR:MMS:20'},
-            {'label': 'MFX:USR:MMS:21', 'value': 'MFX:USR:MMS:21'},
-            {'label': 'MFX:USR:MMS:22', 'value': 'MFX:USR:MMS:22'},
-            {'label': 'MFX:USR:MMS:23', 'value': 'MFX:USR:MMS:23'},
-            {'label': 'MFX:USR:MMS:24', 'value': 'MFX:USR:MMS:24'},
-            {'label': 'MFX:USR:MMS:01', 'value': 'MFX:USR:MMS:01'},
-            {'label': 'MFX:USR:MMS:02', 'value': 'MFX:USR:MMS:02'},
-            {'label': 'MFX:USR:MMS:03', 'value': 'MFX:USR:MMS:03'},
-            {'label': 'MFX:USR:MMS:04', 'value': 'MFX:USR:MMS:04'},
-            {'label': 'MFX:USR:MMS:05', 'value': 'MFX:USR:MMS:05'},
-            {'label': 'MFX:USR:MMS:06', 'value': 'MFX:USR:MMS:06'},
-            {'label': 'MFX:USR:MMS:07', 'value': 'MFX:USR:MMS:07'},
-            {'label': 'MFX:USR:MMS:08', 'value': 'MFX:USR:MMS:08'},
-            {'label': 'MFX:USR:MMS:09', 'value': 'MFX:USR:MMS:09'},
-            {'label': 'MFX:USR:MMS:10', 'value': 'MFX:USR:MMS:10'},
-            {'label': 'MFX:USR:MMS:11', 'value': 'MFX:USR:MMS:11'},
-            {'label': 'MFX:USR:MMS:12', 'value': 'MFX:USR:MMS:12'},
-            {'label': 'MFX:USR:MMS:13', 'value': 'MFX:USR:MMS:13'},
-            {'label': 'MFX:USR:MMS:14', 'value': 'MFX:USR:MMS:14'},
-            {'label': 'MFX:USR:MMS:15', 'value': 'MFX:USR:MMS:15'},
-        ],
-        style={'display':'inline-block', 'width':'60%', 'fontSize':18},
+        options=[{'label':name, 'value':name} for name in table_names],
+        style={'padding-left':10, 'display':'inline-block', 'width':'800px', 'fontSize':18},
         placeholder = "Select motor(s)",
         multi=True,
         value = []

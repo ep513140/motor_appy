@@ -20,26 +20,25 @@ import pandas
 
 
 class waitingHook():
-    def __init__(self, motorName):
+    def __init__(self):
         mydb = mysql.connector.connect(
         host=os.environ['MYSQL_HOST'],
         user=os.environ['MYSQL_USER'],
         passwd=os.environ['MYSQL_PASSWORD'],
         database=os.environ['MYSQL_DB'],
         )
-        cursor = mydb.cursor()
-        self.create_table(motorName, mydb)
-        self.motorName = motorName
         self.mydb = mydb
 
     def __call__(self, statuses):
         if statuses!=None:
             for stat in statuses:
-                    if isinstance(stat, MoveStatus):
+                    if isinstance(stat, MoveStatus) and stat.pos.prefix!='':
+                        self.motorName = stat.pos.name
+                        self.create_table(str(stat.pos.name), self.mydb)
                         user = getpass.getuser()
-                        stat.add_callback(partial(self.data_entry, status = stat, user = user))
+                        stat.add_callback(partial(self.data_entry, status = stat, user = user, prefix = stat.pos.prefix))
 
-    def data_entry(self, status, user):
+    def data_entry(self, status, user, prefix):
         mycursor = self.mydb.cursor()
         start = status.start_ts
         finish = status.finish_ts
@@ -50,35 +49,36 @@ class waitingHook():
         target = round(status.target,1)
         user = str(user)
         temp = str(status.success)
+        prefix = str(prefix)
         motorName = self.motorName
         if temp==0:
             success = "False"
         else:
             success = "True"
-        mycursor.execute("INSERT INTO "+motorName+" (start_ts, finish_ts, start_pos, finish_pos, target, success, user) VALUES(%s, %s, %s, %s, %s, %s, %s)",
-        (start_ts, finish_ts, start_pos, finish_pos, target, success, user))
-        #insert_tuple = (start_ts, finish_ts, start_pos, finish_pos, target, success, user)
-        #sql_insert_query = "INSERT INTO "+motorName+" (start_ts, finish_ts, start_pos, finish_pos, target, success, user) VALUES(%s, %s, %s, %s, %s, %s, %s)",
-        #result  = mycursor.execute(sql_insert_query, insert_tuple)
+        mycursor.execute("INSERT INTO "+motorName+" (start_ts, finish_ts, start_pos, finish_pos, target, success, user, prefix) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)",
+        (start_ts, finish_ts, start_pos, finish_pos, target, success, user, prefix))
         self.mydb.commit()
 
 
 
     def create_table(self, motorName, mydb):
         mycursor = mydb.cursor()
-
-        #mycursor.execute(SET @table_name = motorName)
-        #table_name = motorName
-        mycursor.execute("CREATE TABLE IF NOT EXISTS " +motorName+" (start_ts VARCHAR(19) NOT NULL, finish_ts VARCHAR(19) NOT NULL, start_pos VARCHAR(10) NOT NULL, finish_pos VARCHAR(10) NOT NULL, target VARCHAR(10) NOT NULL, success VARCHAR(5) NOT NULL, user VARCHAR(15) NOT NULL)")
+        mycursor.execute("CREATE TABLE IF NOT EXISTS "+motorName+" (start_ts VARCHAR(19) NOT NULL, finish_ts VARCHAR(19) NOT NULL, start_pos VARCHAR(10) NOT NULL, finish_pos VARCHAR(10) NOT NULL, target VARCHAR(10) NOT NULL, success VARCHAR(5) NOT NULL, user VARCHAR(15) NOT NULL, prefix VARCHAR(30) NOT NULL)")
         mydb.commit()
-
+        mycursor.close()
 
     def get_data(self, motor, start_time, stop_time):
         mycursor = self.mydb.cursor()
 
-        query = "SELECT start_ts, finish_ts, start_pos, finish_pos, target, success, user FROM "+motor+" WHERE STR_TO_DATE(start_ts, '%Y-%m-%d') >= '"+start_time+"' AND STR_TO_DATE(start_ts, '%Y-%m-%d') <= '"+stop_time+"'"
+        query = "SELECT start_ts, finish_ts, start_pos, finish_pos, target, success, user, prefix FROM "+motor+" WHERE STR_TO_DATE(start_ts, '%Y-%m-%d') >= '"+start_time+"' AND STR_TO_DATE(start_ts, '%Y-%m-%d') <= '"+stop_time+"'"
         df = pandas.read_sql_query(query, self.mydb)
 
         self.mydb.commit()
         mycursor.close()
         return df
+
+    def get_tables(self):
+        mycursor = self.mydb.cursor()
+        mycursor.execute("SELECT table_name FROM information_schema.tables where table_schema='motor_movements'");
+        tables = mycursor.fetchall()
+        return tables
