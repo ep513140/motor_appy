@@ -33,6 +33,7 @@ class waitingHook():
         if statuses!=None:
             for stat in statuses:
                     if isinstance(stat, MoveStatus) and stat.pos.prefix!='':
+                        time.sleep(0.01)
                         self.motorName = stat.pos.name
                         self.create_table(str(stat.pos.name), self.mydb)
                         user = getpass.getuser()
@@ -63,6 +64,8 @@ class waitingHook():
 
     def create_table(self, motorName, mydb):
         mycursor = mydb.cursor()
+        mycursor.execute("SHOW TABLES")
+        tbls = mycursor.fetchall()
         mycursor.execute("CREATE TABLE IF NOT EXISTS "+motorName+" (start_ts VARCHAR(19) NOT NULL, finish_ts VARCHAR(19) NOT NULL, start_pos VARCHAR(10) NOT NULL, finish_pos VARCHAR(10) NOT NULL, target VARCHAR(10) NOT NULL, success VARCHAR(5) NOT NULL, user VARCHAR(15) NOT NULL, prefix VARCHAR(30) NOT NULL)")
         mydb.commit()
         mycursor.close()

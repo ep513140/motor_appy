@@ -1,5 +1,5 @@
 
-from motor_improv import app
+from motor_plot import app
 
 if __name__=="__main__":
 	app.run()
