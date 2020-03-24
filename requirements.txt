@@ -4,7 +4,7 @@ asn1crypto==0.24.0
 asteval==0.9.14
 attrs==19.1.0
 backcall==0.1.0
-bleach==3.1.0
+bleach==3.1.2
 bluesky==1.5.3
 certifi==2019.6.16
 cf-units==2.0.1
