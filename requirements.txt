@@ -12,7 +12,7 @@ cffi==1.12.3
 cftime==1.0.3.4
 chardet==3.0.4
 Click==7.0
-cryptography==2.7
+cryptography==3.2
 cycler==0.10.0
 dash==1.0.2
 dash-core-components==1.0.0
