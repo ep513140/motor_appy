@@ -68,7 +68,7 @@ protobuf==3.8.0
 ptyprocess==0.6.0
 pycparser==2.19
 pyepics==3.3.3
-Pygments==2.4.2
+Pygments==2.7.4
 pyOpenSSL==19.0.0
 pyparsing==2.4.1
 pyrsistent==0.15.3
